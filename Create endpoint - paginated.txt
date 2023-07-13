@@ -1,0 +1,370 @@
+using Microsoft.AspNetCore.Mvc;
+using Stripe;
+using System.Text.Json;
+
+namespace StripeIntegration;
+
+[ApiController]
+[Route("[controller]")]
+public class StripeController : ControllerBase
+{
+    private readonly StripeService _stripeService;
+
+    public StripeController(StripeService stripeService)
+    {
+        _stripeService = stripeService;
+    }
+
+    [HttpGet("balance")]
+    public IActionResult GetBalance()
+    {
+        var balance = _stripeService.GetBalance();
+        var options = new JsonSerializerOptions { WriteIndented = true };
+        string jsonString = JsonSerializer.Serialize(balance, options);
+
+        return Ok(jsonString);
+    }
+}
+
+using Stripe;
+using Microsoft.Extensions.Options;
+
+namespace StripeIntegration;
+public class StripeService
+{
+    private readonly string _apiKey = "sk_test_51NTLYOLcrZqS336YAiGKS4M7BTxuKEMsJH9dYt2ZBss7WvMJ8av5LyTzgkgLbkvUkkbFERQdjNr3NztXW1AEtE5000W0TNyrts";
+
+    public StripeService(IOptions<StripeSettings> options)
+    {
+        StripeConfiguration.ApiKey = _apiKey;
+    }
+
+    public Balance GetBalance()
+    {
+        try
+        {
+            var balanceService = new BalanceService();
+            Balance stripeBalance = balanceService.Get();
+
+            return stripeBalance;
+        }
+        catch (StripeException ex)
+        {
+            throw new Exception("Stripe API Error: " + ex.Message);
+        }
+    }
+
+}
+
+
+for code above     Create endpoint to list balance transactions with pagination; By calling the endpoint above make a request to the public `Stripe` API using endpoint from this document https://stripe.com/docs/testing to list balance;      Wrap Stripe API calls in try-catch blocks to handle Stripe API errors ;     Parse retrieved API response data in JSON to variable/object; 
+ChatGPT
+
+To list balance transactions with pagination, you would use the BalanceTransactionService class provided by the Stripe API. You would also add the necessary parameters to handle pagination, which would typically include a limit and a starting_after parameter.
+
+Here is how you might create the new endpoint and modify your StripeService:
+
+In StripeController.cs:
+
+csharp
+
+using Microsoft.AspNetCore.Mvc;
+using Stripe;
+using System.Text.Json;
+
+namespace StripeIntegration;
+
+[ApiController]
+[Route("[controller]")]
+public class StripeController : ControllerBase
+{
+    private readonly StripeService _stripeService;
+
+    public StripeController(StripeService stripeService)
+    {
+        _stripeService = stripeService;
+    }
+
+    [HttpGet("balance")]
+    public IActionResult GetBalance()
+    {
+        var balance = _stripeService.GetBalance();
+        var options = new JsonSerializerOptions { WriteIndented = true };
+        string jsonString = JsonSerializer.Serialize(balance, options);
+
+        return Ok(jsonString);
+    }
+
+    // New endpoint to list balance transactions with pagination
+    [HttpGet("transactions")]
+    public IActionResult GetBalanceTransactions(int limit, string startingAfter)
+    {
+        var transactions = _stripeService.GetBalanceTransactions(limit, startingAfter);
+        var options = new JsonSerializerOptions { WriteIndented = true };
+        string jsonString = JsonSerializer.Serialize(transactions, options);
+
+        return Ok(jsonString);
+    }
+}
+
+In StripeService.cs:
+
+csharp
+
+using Stripe;
+using Microsoft.Extensions.Options;
+
+namespace StripeIntegration;
+public class StripeService
+{
+    private readonly string _apiKey = "sk_test_51NTLYOLcrZqS336YAiGKS4M7BTxuKEMsJH9dYt2ZBss7WvMJ8av5LyTzgkgLbkvUkkbFERQdjNr3NztXW1AEtE5000W0TNyrts";
+
+    public StripeService(IOptions<StripeSettings> options)
+    {
+        StripeConfiguration.ApiKey = _apiKey;
+    }
+
+    public Balance GetBalance()
+    {
+        try
+        {
+            var balanceService = new BalanceService();
+            Balance stripeBalance = balanceService.Get();
+
+            return stripeBalance;
+        }
+        catch (StripeException ex)
+        {
+            throw new Exception("Stripe API Error: " + ex.Message);
+        }
+    }
+
+    // Method to get balance transactions with pagination
+    public StripeList<BalanceTransaction> GetBalanceTransactions(int limit, string startingAfter)
+    {
+        try
+        {
+            var service = new BalanceTransactionService();
+            var options = new BalanceTransactionListOptions
+            {
+                Limit = limit,
+                StartingAfter = startingAfter,
+            };
+            var transactions = service.List(options);
+            return transactions;
+        }
+        catch (StripeException ex)
+        {
+            throw new Exception("Stripe API Error: " + ex.Message);
+        }
+    }
+}
+
+Please note that the GetBalanceTransactions method in StripeService takes two parameters: limit and startingAfter, to handle pagination. Similarly, the GetBalanceTransactions endpoint in StripeController also takes these parameters from the request. This way, you can fetch a specified number of balance transactions after a certain transaction.
+
+Also remember that hardcoding an API key like this is not a secure practice. The key should be stored securely, such as in a configuration file or an environment variable, and loaded into the application when needed.
+User
+how I can avoid throwing System.Exception cause there is a warning from Visual Studio "System.Exception should not be thrown by user code"
+ChatGPT
+
+It's a best practice to avoid throwing System.Exception directly. It's recommended to throw the most specific (derived) exception instead. This way, calling code can handle different types of exceptions differently. In this context, you could create your own exception type that derives from System.Exception and throw that.
+
+Here is how you might define a custom exception:
+
+csharp
+
+using System;
+
+namespace StripeIntegration
+{
+    public class StripeServiceException : Exception
+    {
+        public StripeServiceException(string message)
+            : base(message)
+        {
+        }
+
+        public StripeServiceException(string message, Exception inner)
+            : base(message, inner)
+        {
+        }
+    }
+}
+
+Then, you can use StripeServiceException in your StripeService methods:
+
+csharp
+
+using Stripe;
+using Microsoft.Extensions.Options;
+
+namespace StripeIntegration;
+public class StripeService
+{
+    private readonly string _apiKey = "sk_test_51NTLYOLcrZqS336YAiGKS4M7BTxuKEMsJH9dYt2ZBss7WvMJ8av5LyTzgkgLbkvUkkbFERQdjNr3NztXW1AEtE5000W0TNyrts";
+
+    public StripeService(IOptions<StripeSettings> options)
+    {
+        StripeConfiguration.ApiKey = _apiKey;
+    }
+
+    public Balance GetBalance()
+    {
+        try
+        {
+            var balanceService = new BalanceService();
+            Balance stripeBalance = balanceService.Get();
+
+            return stripeBalance;
+        }
+        catch (StripeException ex)
+        {
+            throw new StripeServiceException("Stripe API Error: " + ex.Message, ex);
+        }
+    }
+
+    public StripeList<BalanceTransaction> GetBalanceTransactions(int limit, string startingAfter)
+    {
+        try
+        {
+            var service = new BalanceTransactionService();
+            var options = new BalanceTransactionListOptions
+            {
+                Limit = limit,
+                StartingAfter = startingAfter,
+            };
+            var transactions = service.List(options);
+            return transactions;
+        }
+        catch (StripeException ex)
+        {
+            throw new StripeServiceException("Stripe API Error: " + ex.Message, ex);
+        }
+    }
+}
+
+By doing this, you have a more specific exception type that calling code can catch and handle accordingly. In addition, this keeps the original StripeException as the inner exception, preserving the original context. This should also resolve the Visual Studio warning.
+User
+Update this implementation of 'ISerializable' to conform to the recommended serialization pattern.	StripeIntegration	StripeServiceException.
+ChatGPT
+
+The ISerializable interface allows an object to control its own serialization process. If you want to implement ISerializable in your StripeServiceException class, you'll need to add a serialization constructor and a GetObjectData method.
+
+Here is how you might do it:
+
+csharp
+
+using System;
+using System.Runtime.Serialization;
+
+namespace StripeIntegration
+{
+    [Serializable]
+    public class StripeServiceException : Exception, ISerializable
+    {
+        public StripeServiceException(string message)
+            : base(message)
+        {
+        }
+
+        public StripeServiceException(string message, Exception inner)
+            : base(message, inner)
+        {
+        }
+
+        protected StripeServiceException(SerializationInfo info, StreamingContext context)
+            : base(info, context)
+        {
+        }
+
+        public override void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            if (info == null)
+            {
+                throw new ArgumentNullException(nameof(info));
+            }
+
+            base.GetObjectData(info, context);
+        }
+    }
+}
+
+This code includes a protected serialization constructor that takes SerializationInfo and StreamingContext parameters. This constructor is called during deserialization.
+
+The GetObjectData method sets the SerializationInfo with information about the exception. In this case, we're simply calling the base Exception class's GetObjectData, which adds standard information like the exception message and stack trace. If you had additional custom properties, you would add them to the SerializationInfo here.
+
+The Serializable attribute is also added to the class, which indicates that this class can be serialized.
+
+Please note that you only need to implement ISerializable if you plan to serialize your exceptions (e.g., for logging, or if you are using remoting to communicate between application domains). If you do not plan to serialize your exceptions, this implementation is not necessary.
+User
+how I can get value for startingAfter for paginated request?
+ChatGPT
+
+When you list Stripe resources (like balance transactions) using pagination, the response from the Stripe API includes an "id" field for each item. You can use the "id" of the last item in one batch as the "startingAfter" parameter when fetching the next batch.
+
+Here's an example of how you might do this:
+
+csharp
+
+// Fetch the first page of balance transactions
+var transactions = _stripeService.GetBalanceTransactions(10, null);
+
+// Get the ID of the last transaction in this batch
+var lastTransactionId = transactions.Data.LastOrDefault()?.Id;
+
+// Fetch the next page of balance transactions, starting after the last one from the previous batch
+var moreTransactions = _stripeService.GetBalanceTransactions(10, lastTransactionId);
+
+In a real-world application, you might include code like this in a loop that fetches and processes batches of transactions until there are no more left. The "startingAfter" parameter lets the Stripe API know where to start when fetching the next batch.
+
+This is typically used in a client-side implementation, where the client keeps track of the last id and sends it with the next request to get the subsequent page. If you are building an API, it is usually the client's responsibility to provide this value. If you are building a user interface, you would typically store the last id in the state of your app or page.
+User
+should we make startingAfter nullable and not required for paginated endpoint?
+ChatGPT
+
+Yes, it's a good idea to make the startingAfter parameter nullable and not required for the paginated endpoint. When the parameter is null or not provided, the Stripe API will return the first page of results.
+
+Here is the updated GetBalanceTransactions endpoint in your StripeController:
+
+csharp
+
+// New endpoint to list balance transactions with pagination
+[HttpGet("transactions")]
+public IActionResult GetBalanceTransactions(int limit, string startingAfter = null)
+{
+    var transactions = _stripeService.GetBalanceTransactions(limit, startingAfter);
+    var options = new JsonSerializerOptions { WriteIndented = true };
+    string jsonString = JsonSerializer.Serialize(transactions, options);
+
+    return Ok(jsonString);
+}
+
+In this code, startingAfter is an optional parameter with a default value of null. When a client makes a request to this endpoint without providing a startingAfter value, the server will fetch the first page of balance transactions.
+
+In your StripeService, you should ensure that if startingAfter is null, you don't include it in your BalanceTransactionListOptions. Here's an example:
+
+csharp
+
+public StripeList<BalanceTransaction> GetBalanceTransactions(int limit, string startingAfter = null)
+{
+    try
+    {
+        var service = new BalanceTransactionService();
+        var options = new BalanceTransactionListOptions
+        {
+            Limit = limit,
+        };
+        if (!string.IsNullOrEmpty(startingAfter))
+        {
+            options.StartingAfter = startingAfter;
+        }
+        var transactions = service.List(options);
+        return transactions;
+    }
+    catch (StripeException ex)
+    {
+        throw new StripeServiceException("Stripe API Error: " + ex.Message, ex);
+    }
+}
+
+This makes your API more flexible and easier to use, as clients can choose whether or not to provide a startingAfter value based on their needs.
