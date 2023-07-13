@@ -1,0 +1,202 @@
+Model: GPT-4
+User
+    Update Readme.md with  
+    Application description: 2 paragraphs, 4-10 Sentences. 
+    Information on how to run developed application locally. 
+    At least 2 example URLs how to use developed endpoint. 
+
+some code from application
+using Microsoft.AspNetCore.Mvc;
+using Stripe;
+using System.Text.Json;
+
+namespace StripeIntegration;
+
+[ApiController]
+[Route("[controller]")]
+public class StripeController : ControllerBase
+{
+    private readonly IStripeService _stripeService;
+
+    public StripeController(IStripeService stripeService)
+    {
+        _stripeService = stripeService;
+    }
+
+    [HttpGet("balance")]
+    public IActionResult GetBalance()
+    {
+        var balance = _stripeService.GetBalance();
+        var options = new JsonSerializerOptions { WriteIndented = true };
+        string jsonString = JsonSerializer.Serialize(balance, options);
+
+        return Ok(jsonString);
+    }
+
+    // New endpoint to list balance transactions with pagination
+    [HttpGet("transactions")]
+    public IActionResult GetBalanceTransactions(int limit, string? startingAfter = null)
+    {
+        var transactions = _stripeService.GetBalanceTransactions(limit, startingAfter);
+        var options = new JsonSerializerOptions { WriteIndented = true };
+        string jsonString = JsonSerializer.Serialize(transactions, options);
+
+        return Ok(jsonString);
+    }
+}
+using System.Runtime.Serialization;
+
+namespace StripeIntegration;
+
+[Serializable]
+public class StripeServiceException : Exception, ISerializable
+{
+    public StripeServiceException(string message)
+        : base(message)
+    {
+    }
+
+    public StripeServiceException(string message, Exception inner)
+        : base(message, inner)
+    {
+    }
+
+    protected StripeServiceException(SerializationInfo info, StreamingContext context)
+        : base(info, context)
+    {
+    }
+
+    public override void GetObjectData(SerializationInfo info, StreamingContext context)
+    {
+        if (info == null)
+        {
+            throw new ArgumentNullException(nameof(info));
+        }
+
+        base.GetObjectData(info, context);
+    }
+}
+using Stripe;
+using Microsoft.Extensions.Options;
+using StripeIntegration;
+
+namespace StripeIntegration;
+public class StripeService : IStripeService
+{
+    private readonly string _apiKey = "sk_test_51NTLYOLcrZqS336YAiGKS4M7BTxuKEMsJH9dYt2ZBss7WvMJ8av5LyTzgkgLbkvUkkbFERQdjNr3NztXW1AEtE5000W0TNyrts";
+
+    public StripeService(IOptions<StripeSettings> options)
+    {
+        StripeConfiguration.ApiKey = _apiKey;
+    }
+
+    public Balance GetBalance()
+    {
+        try
+        {
+            var balanceService = new BalanceService();
+            Balance stripeBalance = balanceService.Get();
+
+            return stripeBalance;
+        }
+        catch (StripeException ex)
+        {
+            throw new StripeServiceException("Stripe API Error: " + ex.Message);
+        }
+    }
+
+    // Method to get balance transactions with pagination
+    public StripeList<BalanceTransaction> GetBalanceTransactions(int limit, string? startingAfter)
+    {
+        try
+        {
+            var service = new BalanceTransactionService();
+            var options = new BalanceTransactionListOptions
+            {
+                Limit = limit,
+            };
+            if (!string.IsNullOrEmpty(startingAfter))
+            {
+                options.StartingAfter = startingAfter;
+            }
+            var transactions = service.List(options);
+            return transactions;
+        }
+        catch (StripeException ex)
+        {
+            throw new StripeServiceException("Stripe API Error: " + ex.Message);
+        }
+    }
+}
+using StripeIntegration;
+using System.Configuration;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+
+builder.Services.AddControllers();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<IStripeService, StripeService>();
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+app.UseMiddleware<ErrorHandlerMiddleware>();
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
+ChatGPT
+Readme.md
+Application Description
+
+This application is designed to facilitate Stripe API integration and provide a convenient interface for interacting with the Stripe's balance and balance transactions endpoints. It is built upon ASP.NET Core and uses Stripe.NET SDK to communicate with the Stripe API. By encapsulating Stripe API calls within a separate service, it allows easy querying of the current balance and transaction history with a user-friendly interface.
+
+The main feature of this application is its two web API endpoints. One returns the current balance in a Stripe account, and the other allows retrieval of balance transactions with optional pagination. Both endpoints return well-formatted JSON responses for easy interpretation. The application also includes a custom exception class, StripeServiceException, designed specifically for handling any exceptions related to the Stripe service, ensuring clear and meaningful error messages are propagated when issues arise.
+Running the Application Locally
+
+To run the application locally, you will need to follow these steps:
+
+    Clone the repository to your local machine.
+
+    Install the necessary dependencies. This project primarily uses Microsoft ASP.NET Core, the Stripe.NET SDK, and JSON handling libraries. You can do this by running the command:
+
+dotnet restore
+
+Update the _apiKey variable in the StripeService.cs with your own Stripe API key.
+
+Run the application with the following command:
+
+arduino
+
+    dotnet run
+
+Your local server should now be running and you can access the application through a web browser or API client like Postman at http://localhost:5000 (or https://localhost:5001 for HTTPS).
+Example URLs
+
+Here are example URLs to interact with the developed endpoints:
+
+    Get current balance:
+
+    bash
+
+http://localhost:5000/Stripe/balance
+
+Get balance transactions:
+
+bash
+
+    http://localhost:5000/Stripe/transactions?limit=10&startingAfter=txn_1JbKNEEzv3ZEq9Tlo8v8Qhao
+
+Please replace localhost:5000 with the server address and port you are using. The limit query parameter in the transactions endpoint indicates the maximum number of transactions to be returned, while startingAfter represents the ID of the last data from the previous page, used for pagination.
