@@ -7,7 +7,6 @@ public class StripeService
 
     public StripeService(IOptions<StripeSettings> options)
     {
-        _apiKey = options.Value.ApiKey;
         StripeConfiguration.ApiKey = _apiKey;
     }
 

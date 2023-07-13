@@ -1,3 +1,6 @@
+using System.Net;
+using System.Text.Json;
+
 public class ErrorHandlerMiddleware
 {
 	private readonly RequestDelegate _next;
