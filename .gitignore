@@ -6,3 +6,7 @@
 *.manifest
 *.testlog
 /.vs/use-case-2-chat-gpt/FileContentIndex
+/StripeIntegration/obj
+/.vs/use-case-2-chat-gpt/v17
+/StripeIntegration/.vs
+/.vs
