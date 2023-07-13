@@ -1,8 +1,9 @@
 ﻿using Stripe;
 using Microsoft.Extensions.Options;
+using StripeIntegration;
 
 namespace StripeIntegration;
-public class StripeService
+public class StripeService : IStripeService
 {
     private readonly string _apiKey = "sk_test_51NTLYOLcrZqS336YAiGKS4M7BTxuKEMsJH9dYt2ZBss7WvMJ8av5LyTzgkgLbkvUkkbFERQdjNr3NztXW1AEtE5000W0TNyrts";
 
@@ -48,5 +49,4 @@ public class StripeService
             throw new StripeServiceException("Stripe API Error: " + ex.Message);
         }
     }
-
 }

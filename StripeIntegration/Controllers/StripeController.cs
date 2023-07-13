@@ -8,9 +8,9 @@ namespace StripeIntegration;
 [Route("[controller]")]
 public class StripeController : ControllerBase
 {
-    private readonly StripeService _stripeService;
+    private readonly IStripeService _stripeService;
 
-    public StripeController(StripeService stripeService)
+    public StripeController(IStripeService stripeService)
     {
         _stripeService = stripeService;
     }
