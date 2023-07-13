@@ -22,13 +22,31 @@ public class StripeService
         }
         catch (StripeException ex)
         {
-            throw new Exception("Stripe API Error: " + ex.Message);
+            throw new StripeServiceException("Stripe API Error: " + ex.Message);
         }
     }
 
-    public StripeList<BalanceTransaction> GetBalanceTransactions(BalanceTransactionListOptions options)
+    // Method to get balance transactions with pagination
+    public StripeList<BalanceTransaction> GetBalanceTransactions(int limit, string? startingAfter)
     {
-        var service = new BalanceTransactionService();
-        return service.List(options);
+        try
+        {
+            var service = new BalanceTransactionService();
+            var options = new BalanceTransactionListOptions
+            {
+                Limit = limit,
+            };
+            if (!string.IsNullOrEmpty(startingAfter))
+            {
+                options.StartingAfter = startingAfter;
+            }
+            var transactions = service.List(options);
+            return transactions;
+        }
+        catch (StripeException ex)
+        {
+            throw new StripeServiceException("Stripe API Error: " + ex.Message);
+        }
     }
+
 }

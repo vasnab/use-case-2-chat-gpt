@@ -25,14 +25,14 @@ public class StripeController : ControllerBase
         return Ok(jsonString);
     }
 
+    // New endpoint to list balance transactions with pagination
     [HttpGet("transactions")]
-    public IActionResult GetTransactions([FromQuery] int limit = 10)
+    public IActionResult GetBalanceTransactions(int limit, string? startingAfter = null)
     {
-        var options = new BalanceTransactionListOptions
-        {
-            Limit = limit
-        };
-        var transactions = _stripeService.GetBalanceTransactions(options);
-        return Ok(transactions);
+        var transactions = _stripeService.GetBalanceTransactions(limit, startingAfter);
+        var options = new JsonSerializerOptions { WriteIndented = true };
+        string jsonString = JsonSerializer.Serialize(transactions, options);
+
+        return Ok(jsonString);
     }
 }
