@@ -44,5 +44,6 @@ jobs:
         shell: powershell
         run: |
           .\.sonar\scanner\dotnet-sonarscanner begin /k:"vasnab_use-case-2-chat-gpt" /o:"vasnab" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io"
-           dotnet build StripeIntegration.sln --configuration Release --no-restore
+           dotnet build .\StripeIntegration\StripeIntegration.sln --configuration Release --no-restore 
           .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+          
