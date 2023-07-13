@@ -1,6 +1,7 @@
 ﻿using Stripe;
 using Microsoft.Extensions.Options;
 
+namespace StripeIntegration;
 public class StripeService
 {
     private readonly string _apiKey = "sk_test_51NTLYOLcrZqS336YAiGKS4M7BTxuKEMsJH9dYt2ZBss7WvMJ8av5LyTzgkgLbkvUkkbFERQdjNr3NztXW1AEtE5000W0TNyrts";

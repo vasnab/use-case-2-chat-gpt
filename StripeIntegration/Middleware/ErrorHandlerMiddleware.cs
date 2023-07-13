@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 
+namespace StripeIntegration;
 public class ErrorHandlerMiddleware
 {
 	private readonly RequestDelegate _next;

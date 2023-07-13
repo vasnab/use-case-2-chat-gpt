@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Stripe;
 using System.Text.Json;
 
+namespace StripeIntegration;
+
 [ApiController]
 [Route("[controller]")]
 public class StripeController : ControllerBase
